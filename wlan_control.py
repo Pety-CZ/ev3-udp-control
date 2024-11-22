@@ -72,7 +72,7 @@ def transmit(type_of_message, message):
             sock.sendto(message.encode(), (SERVER_IP, SENDING_PORT))
 
 
-####### AI generated #########
+####### NOT TESTED !!! #########
 def stop_music():
     # Gets process list
     process_list = subprocess.check_output(["ps", "aux"]).decode()
