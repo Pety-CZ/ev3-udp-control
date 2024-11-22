@@ -1,0 +1,49 @@
+FORMAT:
+@@@LEGOCTRL#<COMMAND>#<PARAM_1>#<PARAM_2>#...#<PARAM_N>
+TIME - in secs
+SPEED - in %'s
+
+ROBOT listening on UDP 42069
+SERVER listening on UDP 42070
+-----------------------------------------------------
+
+COMMANDS:
+---STOP
+(stop all movement)
+
+---RIDE
+PARAM1: TIME (INFTY IF ZERO)
+PARAM2: LEFT ENG SPEED (-100 TO 100)
+PARAM3: RIGHT ENG SPEED (-100 TO 100)
+
+---JOYSTICK
+(joystick coords normalized to -100; +100)
+PARAM1: X COORD
+PARAM2: Y COORD
+
+---SONG
+(plays song from PARAM1)
+PARAM1: FILENAME
+
+---MUTE
+(mutes all sounds)
+
+---VOLUME
+(sets volume)
+PARAM1: VOLUME (0 TO 100)
+
+MESSAGES:
+---PING
+(REQUEST sent by server, REPLY sent by robot)
+PARAM1: 0 (REQUEST) OR 1 (REPLY)
+PARAM2: STRING
+
+---SENSOR
+(outputs from sensors to server)
+PARAM1: CHANNEL (1, 2, 3, 4)
+PARAM2: VALUE
+
+---MESSAGE
+(message from robot to server)
+PARAM1: TYPE (0 = ERROR, 1 = INFO)
+PARAM2: MESSAGE
