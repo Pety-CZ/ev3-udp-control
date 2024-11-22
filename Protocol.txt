@@ -47,3 +47,8 @@ PARAM2: VALUE
 (message from robot to server)
 PARAM1: TYPE (0 = ERROR, 1 = INFO)
 PARAM2: MESSAGE
+
+---PLAYLIST
+(list of robot's avaible music files)
+PARAM1: ID (INT, does'nt need to be implemented)
+PARAM2: FILENAME
