@@ -28,7 +28,7 @@ SENDING_PORT = 42070
 RECIEVING_PORT = 42069
 message = ""
 ping_message = ""
-
+PLAYLIST_PING_CODE = "18"
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((ROBOT_IP, RECIEVING_PORT))
@@ -41,13 +41,12 @@ def transmit_playlist():
             music_files.append(i)
     music_files.sort()
 
-    i = 0
+    playlist = "@@@LEGOCTRL#PING#1#" + PLAYLIST_PING_CODE
     for file in music_files:
-        mess = "@@@LEGOCTRL#PLAYLIST#"+i+"#" + file
-        transmit("playlist", mess)
-        i+=1
+        playlist = playlist + "#SONG#" + file
         # message = "@@@LEGOCTRL#PLAYLIST#"+i+"#" + file
         # sock.sendto(message.encode(), (SERVER_IP, SENDING_PORT))
+    transmit("playlist", playlist)
 
 def check_boundaries(value, min, max):
   if value > max:
@@ -184,7 +183,9 @@ try:
                 speaker.set_volume(0)
 
             elif (command == "PING"):
-                if (param[1] == "0"):
+                if (param[1] == "0" and param[2] == PLAYLIST_PING_CODE):
+                    transmit_playlist();
+                elif (param[1] == "0"):
                     ping_message = param[2]
 
             else:
