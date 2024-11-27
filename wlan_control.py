@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 #https://thelinuxcode.com/send_receive_udp_python/
 
+#TODO
+#
+#https://forums.raspberrypi.com/viewtopic.php?f=32&t=85601#p604902
+#
+#
+
 from ev3dev2.motor import OUTPUT_A, OUTPUT_D, SpeedPercent, MoveTank, MoveJoystick
 from ev3dev2.sensor import INPUT_4
 from ev3dev2.sensor.lego import UltrasonicSensor
@@ -18,8 +24,9 @@ tank_drive = MoveTank(OUTPUT_A, OUTPUT_D)
 joystick_drive = MoveJoystick(OUTPUT_A, OUTPUT_D)
 ultrasonic = UltrasonicSensor(INPUT_4)
 speaker = Sound()
+last_song = ""
 last_distance_send = time.time()
-distance_send_delay = 1 / 3
+distance_send_delay = 0.25      # in seconds
 
 ### UDP
 SERVER_IP = "100.64.0.101"
@@ -28,20 +35,20 @@ SENDING_PORT = 42070
 RECIEVING_PORT = 42069
 message = ""
 ping_message = ""
-PLAYLIST_PING_CODE = "18"
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((ROBOT_IP, RECIEVING_PORT))
 sock.setblocking(False)  # Nastavení neblokujícího režimu
 
-def transmit_playlist():
+def transmit_playlist(msg):
     music_files = []
     for i in os.listdir("."):
         if i.endswith(".wav"):
             music_files.append(i)
     music_files.sort()
 
-    playlist = "@@@LEGOCTRL#PING#1#" + PLAYLIST_PING_CODE
+    #playlist = "@@@LEGOCTRL#PING#1#"
+    playlist = msg
     for file in music_files:
         playlist = playlist + "#SONG#" + file
         # message = "@@@LEGOCTRL#PLAYLIST#"+i+"#" + file
@@ -69,6 +76,29 @@ def transmit(type_of_message, message):
 
         elif (type_of_message == "playlist"):
             sock.sendto(message.encode(), (SERVER_IP, SENDING_PORT))
+
+
+def play_music(filename, volume):
+    speaker.play_file(filename, volume, Sound.PLAY_NO_WAIT_FOR_COMPLETE)
+
+
+def music_playing_check(param): # LOOP, KILL
+    # Gets process list
+    process_list = subprocess.check_output(["ps", "aux"]).decode()
+
+    # Search for process /usr/bin/aplay
+    aplay_process = subprocess.Popen(["grep", "/usr/bin/aplay"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    output, error = aplay_process.communicate()
+
+    # Gets PID of proces
+    if output:
+        if ( param == "KILL" ):
+                pid = output.split()[1]
+                # Kills PID
+                subprocess.Popen(["kill", "-9", pid])
+    elif ( param == "LOOP" ):
+        play_music(last_song, speaker.get_volume())
+
 
 
 ####### NOT TESTED !!! #########
@@ -147,12 +177,12 @@ try:
 
             elif (command == "RIDE"):
                 seconds = check_boundaries(float(param[1]), 0.0, 10.0)
-                Lspeed = check_boundaries(int(param[2]), -100, 100)
-                Rspeed = check_boundaries(int(param[3]), -100, 100)
+                l_speed = check_boundaries(int(param[2]), -100, 100)
+                r_speed = check_boundaries(int(param[3]), -100, 100)
                 if (seconds == 0.0):
-                    tank_drive.on(Lspeed, Rspeed)
+                    tank_drive.on(l_speed, r_speed)
                 else:
-                    tank_drive.on_for_seconds(Lspeed, Rspeed, seconds)
+                    tank_drive.on_for_seconds(l_speed, r_speed, seconds)
             
             elif (command == "JOYSTICK"):
                 x = check_boundaries(int(param[1]), -100, 100)
@@ -168,11 +198,13 @@ try:
                 if not file.is_file():
                     message = "Song with filename '" + filename + "' does not exist!"
                     continue
-                stop_music();
+                # stop_music();
+                music_playing_check("KILL");
+                last_song = filename
                 speaker.set_volume(volume)
                 speaker.play_file(filename, volume, Sound.PLAY_NO_WAIT_FOR_COMPLETE)
             # speaker.play_file(command[2], int(command[3]), Sound.PLAY_LOOP)
-            
+        
             elif (command == "VOLUME"):
                 volume = check_boundaries(int(param[1]), 0, 100)
                 speaker.set_volume(volume)
@@ -183,15 +215,22 @@ try:
                 speaker.set_volume(0)
 
             elif (command == "PING"):
-                if (param[1] == "0" and param[2] == PLAYLIST_PING_CODE):
-                    transmit_playlist();
-                elif (param[1] == "0"):
-                    ping_message = param[2]
+                if (param[1] == "0"):
+                    msg = "@@LEGOCTRL#" + command + "#1#" + param[2]  # param 2 --> PING SYN
+                    transmit_playlist(msg);
 
+            elif (command == "TONE"):
+                music_playing_check("KILL")
+                frequency = check_boundaries(int(param[1]), 0, 100)
+                duration = check_boundaries(int(param[2]), 0, 100)
+                if not duration:
+                    duration = 99999
+                speaker.play_tone(frequency, duration)
+                
             else:
                 message = "Command '" + command + "' is UNKOWN!"
 
-
+            music_playing_check("LOOP")
             transmit("error", message)
             transmit("ping_reply", ping_message)
             # transmit_message(message)
@@ -206,5 +245,5 @@ except Exception as e:
   print("exception: " + str(e))
   tank_drive.stop()
   speaker.set_volume(100)
-  speaker.speak("Exiting, nigga!")
+  speaker.speak("I am dead,  n E ga!")
   sock.close()
