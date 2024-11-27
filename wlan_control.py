@@ -25,6 +25,7 @@ joystick_drive = MoveJoystick(OUTPUT_A, OUTPUT_D)
 ultrasonic = UltrasonicSensor(INPUT_4)
 speaker = Sound()
 last_song = ""
+PLAYLIST_DIR = "./playlist/"
 last_distance_send = time.time()
 distance_send_delay = 0.25      # in seconds
 
@@ -42,7 +43,7 @@ sock.setblocking(False)  # Nastavení neblokujícího režimu
 
 def transmit_playlist(msg):
     music_files = []
-    for i in os.listdir("."):
+    for i in os.listdir(PLAYLIST_DIR):
         if i.endswith(".wav"):
             music_files.append(i)
     music_files.sort()
@@ -194,13 +195,13 @@ try:
                 # volume = check_boundaries(int(param[2]), 0, 100)
                 volume = speaker.get_volume()
 
-                file = Path(filename)
+                file = PLAYLIST_DIR + Path(filename)
                 if not file.is_file():
                     message = "Song with filename '" + filename + "' does not exist!"
                     continue
                 # stop_music();
                 music_playing_check("KILL");
-                last_song = filename
+                last_song = file
                 speaker.set_volume(volume)
                 speaker.play_file(filename, volume, Sound.PLAY_NO_WAIT_FOR_COMPLETE)
             # speaker.play_file(command[2], int(command[3]), Sound.PLAY_LOOP)
@@ -222,9 +223,7 @@ try:
             elif (command == "TONE"):
                 music_playing_check("KILL")
                 frequency = check_boundaries(int(param[1]), 0, 100)
-                duration = check_boundaries(int(param[2]), 0, 100)
-                if not duration:
-                    duration = 99999
+                duration = 42069
                 speaker.play_tone(frequency, duration)
                 
             else:
